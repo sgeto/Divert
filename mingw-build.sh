@@ -19,9 +19,9 @@
 # Script for MinGW/Linux cross compilation.
 # NOTE: run wddk-build.bat before this script.
 
-set -e
+set -xe
 
-ENVS="i686-w64-mingw32 x86_64-w64-mingw32"
+ENVS="x86_64-w64-mingw32"
 
 for ENV in $ENVS
 do
@@ -35,49 +35,49 @@ do
         BITS=64
         MANGLE=
     fi
-    if [ ! -d install/WDDK/$CPU ]
-    then
-        echo "WARNING: missing WDDK build; run wddk-build.bat first"
-        echo "SKIP WDDK-$CPU"
-        continue
-    fi
+    # if [ ! -d install/WDDK/$CPU ]
+    # then
+        # echo "WARNING: missing WDDK build; run wddk-build.bat first"
+        # echo "SKIP WDDK-$CPU"
+        # continue
+    # fi
     echo "BUILD WDDK-$CPU"
     CC="$ENV-gcc"
     COPTS="-shared -Wall -Wno-pointer-to-int-cast -O2 -Iinclude/ 
         -Wl,--enable-stdcall-fixup -Wl,--entry=${MANGLE}WinDivertDllEntry"
     CLIBS="-lgcc -lmsvcrt -lkernel32 -ladvapi32"
-    STRIP="$ENV-strip"
+    STRIP="strip"
     if [ -x "`which $CC`" ]
     then
-        echo "\tmake install/MINGW/$CPU..."
+        echo -e "\tmake install/MINGW/$CPU..."
         mkdir -p "install/MINGW/$CPU"
-        echo "\tbuild install/MINGW/$CPU/WinDivert.dll..."
+        echo -e "\tbuild install/MINGW/$CPU/WinDivert.dll..."
         $CC $COPTS -c dll/windivert.c -o dll/windivert.o
         $CC $COPTS -o "install/MINGW/$CPU/WinDivert.dll" \
             dll/windivert.o dll/windivert.def -nostdlib $CLIBS
         $STRIP "install/MINGW/$CPU/WinDivert.dll"
-        echo "\tbuild install/MINGW/$CPU/netdump.exe..."
+        echo -e "\tbuild install/MINGW/$CPU/netdump.exe..."
         $CC -s -O2 -Iinclude/ examples/netdump/netdump.c \
             -o "install/MINGW/$CPU/netdump.exe" -lWinDivert -lws2_32 \
             -L"install/MINGW/$CPU/"
-        echo "\tbuild install/MINGW/$CPU/netfilter.exe..."
+        echo -e "\tbuild install/MINGW/$CPU/netfilter.exe..."
         $CC -s -O2 -Iinclude/ examples/netfilter/netfilter.c \
             -o "install/MINGW/$CPU/netfilter.exe" -lWinDivert -lws2_32 \
             -L"install/MINGW/$CPU/"
-        echo "\tbuild install/MINGW/$CPU/passthru.exe..."
+        echo -e "\tbuild install/MINGW/$CPU/passthru.exe..."
         $CC -s -O2 -Iinclude/ examples/passthru/passthru.c \
             -o "install/MINGW/$CPU/passthru.exe" -lWinDivert -lws2_32 \
             -L"install/MINGW/$CPU/"
-        echo "\tbuild install/MINGW/$CPU/webfilter.exe..."
+        echo -e "\tbuild install/MINGW/$CPU/webfilter.exe..."
         $CC -s -O2 -Iinclude/ examples/webfilter/webfilter.c \
             -o "install/MINGW/$CPU/webfilter.exe" -lWinDivert -lws2_32 \
             -L"install/MINGW/$CPU/"
-        echo "\tbuild install/MINGW/$CPU/streamdump.exe..."
+        echo -e "\tbuild install/MINGW/$CPU/streamdump.exe..."
         $CC -s -O2 -Iinclude/ examples/streamdump/streamdump.c \
             -o "install/MINGW/$CPU/streamdump.exe" -lWinDivert -lws2_32 \
             -L"install/MINGW/$CPU/"
-        echo "\tcopy install/MINGW/$CPU/WinDivert$BITS.sys..."
-        cp install/WDDK/$CPU/WinDivert$BITS.sys install/MINGW/$CPU
+        # echo "\tcopy install/MINGW/$CPU/WinDivert$BITS.sys..."
+        # cp install/WDDK/$CPU/WinDivert$BITS.sys install/MINGW/$CPU
     else
         echo "WARNING: $CC not found"
     fi

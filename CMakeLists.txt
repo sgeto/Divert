@@ -34,14 +34,31 @@ set(CMAKE_C_STANDARD 99)
 # OPTIONS
 # =======
 
-option(ENABLE_TESTS "Enable Unit Tests" OFF)
-option(ENABLE_EXAMPLES "Enable Unit Tests" OFF)
-option(BUILD_STATIC_LIBS "Build shared libraries" ON)
-option(BUILD_DEBUG "Build shared libraries" ON)
+option(ENABLE_TESTS "Build and run Unit Tests" ON)
+option(ENABLE_EXAMPLES "Build example applications" ON)
+option(ENABLE_STATIC_LIB "Build static library (libwindivert)" ON)
 if (MSVC)
-  option(ENABLE_DRIVER "Enable Unit Tests" ON)
+  option(ENABLE_DRIVER "Build kernel module" ON)
+endif()
+option(ENABLE_DEBUG "Enable various debugging features" OFF)
+if(ENABLE_DEBUG)
+    option(ENABLE_WSOCKTRACE "Build with WSOCK-TRACE instead of winsock2" ON)
 endif()
 
+
+# BUILD PARAMETERS
+# ================
+
+# include_directories(
+  # ${CMAKE_CURRENT_BINARY_DIR}
+  # ${WinDivert_SOURCE_DIR}/include
+# )
+
+add_definitions(-DWINDIVERT_DEBUG)
+
+
+# ADD SUBDIRECTORIES
+# ==================
 
 add_subdirectory(dll)
 
@@ -60,6 +77,8 @@ endif()
 #
 # INSTALLATION
 # ============
+
+# XXX- install just like in the prebuild folder layout
 if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   #
   # Install 64-bit code built with MSVC in the amd64 subdirectories,
@@ -70,8 +89,8 @@ if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
           LIBRARY DESTINATION lib/amd64
           ARCHIVE DESTINATION lib/amd64)
     if(NOT MINGW)
-      install(FILES $<TARGET_FILE_DIR:${LIBRARY_NAME_STATIC}>/${LIBRARY_NAME_STATIC}.pdb
-              DESTINATION bin/amd64 OPTIONAL)
+      # install(FILES $<TARGET_FILE_DIR:libwindivert>/libwindivert.pdb
+              # DESTINATION bin/amd64 OPTIONAL)
     endif()
 else()
   #
@@ -84,8 +103,8 @@ else()
           LIBRARY DESTINATION lib
           ARCHIVE DESTINATION lib)
     if(NOT MINGW)
-      install(FILES $<TARGET_FILE_DIR:${LIBRARY_NAME_STATIC}>/${LIBRARY_NAME_STATIC}.pdb
-              DESTINATION bin OPTIONAL)
+      # install(FILES $<TARGET_FILE_DIR:libwindivert>/libwindivert.pdb
+              # DESTINATION bin OPTIONAL)
     endif()
 endif()
 
