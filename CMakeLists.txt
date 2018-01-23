@@ -49,13 +49,12 @@ endif()
 # BUILD PARAMETERS
 # ================
 
-# include_directories(
-  # ${CMAKE_CURRENT_BINARY_DIR}
-  # ${WinDivert_SOURCE_DIR}/include
-# )
+include_directories(${WinDivert_SOURCE_DIR}/include)
 
 add_definitions(-DWINDIVERT_DEBUG)
+# include(FindWSOCKTRACE)
 
+set(WINSOCK2 ws2_32)
 
 # ADD SUBDIRECTORIES
 # ==================

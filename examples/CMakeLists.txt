@@ -20,31 +20,31 @@
 # Boston, MA 02111-1307, USA.
 #
 
-if(MSVC)
-  file(GLOB PROJECT_SOURCE_LIST_WIN32_C ${pcap_SOURCE_DIR}/missing/getopt.c)
-  include_directories(${pcap_SOURCE_DIR}/missing)
-endif(MSVC)
+# if(MSVC)
+  # file(GLOB PROJECT_SOURCE_LIST_WIN32_C ${pcap_SOURCE_DIR}/missing/getopt.c)
+  # include_directories(${pcap_SOURCE_DIR}/missing)
+# endif(MSVC)
 
 add_custom_target(tests)
 
 macro(add_example_executable _executable)
-  add_executable(${_executable} EXCLUDE_FROM_ALL
-    ${_executable}.c ${PROJECT_SOURCE_LIST_WIN32_C})
-  set_target_properties(${_executable} PROPERTIES
-    COMPILE_OPTIONS "${C_ADDITIONAL_FLAGS}")
+  add_executable(${_executable} ${_executable}/${_executable}.c)
+  # set_target_properties(${_executable} PROPERTIES
+    # COMPILE_OPTIONS "${C_ADDITIONAL_FLAGS}")
   if(ENABLE_STATIC_LIB)
-    target_link_libraries(${_executable}
-      ${ARGN} ${LIBRARY_NAME} ${PCAP_LINK_LIBRARIES})
+      # XXX- add this globally and use only one
+    # add_definitions(-DWINDIVERTSTATIC -DWINDIVERTSTATIC)
+    set_target_properties(${_executable} PROPERTIES COMPILE_FLAGS -DWINDIVERTSTATIC)
+    target_link_libraries(${_executable} lib${PROJECT_NAME} ${WINSOCK2})
   else()
-    target_link_libraries(${_executable}
-      ${ARGN} ${LIBRARY_NAME}_static ${PCAP_LINK_LIBRARIES})
+    target_link_libraries(${_executable} ${PROJECT_NAME} ${WINSOCK2})
   endif()
-  add_dependencies(tests ${_executable})
+  # add_dependencies(tests ${_executable})
 endmacro()
+
 
 add_example_executable(netdump)
 add_example_executable(netfilter)
 add_example_executable(passthru)
-add_example_executable(findalldevstest)
 add_example_executable(streamdump)
 add_example_executable(webfilter)

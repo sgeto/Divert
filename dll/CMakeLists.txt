@@ -1,11 +1,11 @@
 # INCLUDE_DIRECTORIES(".")
 
-add_definitions(-DHAVE_CONFIG_H)
+# add_definitions(-DHAVE_CONFIG_H)
 
-include_directories(
-  ${CMAKE_CURRENT_BINARY_DIR}
-  ${WinDivert_SOURCE_DIR}/include
-)
+# include_directories(
+  # ${CMAKE_CURRENT_BINARY_DIR}
+  # ${WinDivert_SOURCE_DIR}/include
+# )
 
 # ADD_LIBRARY(divert OBJECT "windivert.c" "windivert_helper.c")
 # XXX - should we say ${CMAKE_PROJECT_NAME} from cmakecache.txt instead? read docs!
