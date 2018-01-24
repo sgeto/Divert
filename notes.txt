@@ -52,5 +52,51 @@ Known version numbers are:
 1900 = VS 14.0
 1910 = VS 15.0
 
+-------------------------------------
+
+http://www.osronline.com/showthread.cfm?link=264337
+
 message(FATAL_ERROR "MSVC_VERSION: ${MSVC_VERSION}")
+
+CMake build for Windows Drivers
+> Can someone point me to any resource which will help me create CMake =
+based build system for=20
+>our Windows driver project?
+
+Just forget this evil idea, and fire _the whole official WDK_ from =
+CMake.
+
+For older non-VS WDKs, you will need DDKBUILD.BAT for this.
+
+For modern WDKs, you can generate the MSBuild project file for WDK by =
+CMake, using configure_file() from the latter or such, and then run the =
+WDK.
+
+Actually, if you're not about Linux portability, then MSBuild is better =
+than CMake - much more powerful imperative part, you have full C# and =
+not the pathetic (though working in its mains) imperative language of =
+CMake.
+
+What would be a perfect solution is a Python OO library which implements =
+the CMake's target object, and calls like "add_custom_target()" and =
+"add_executable()" in Python, so that the build scripts will be CMake by =
+architecture but Python by language.
+
+--=20
+Maxim S. Shatskih
+Microsoft MVP on File System And Storage
+xxxxx@storagecraft.com
+http://www.storagecraft.com
+
+Downloads\Compressed\openPOWERLINK_V2-2.6.2.tar.gz
+
+------------------------------------
+
+WRITTEN BY MORNING
+02/03/2016
+USING CMAKE PART III – BUILD WITH INTEL C++ COMPILER
+
+https://ywjheart.wordpress.com/2016/03/02/using-cmake-part-iii-build-with-intel-c-compiler/
+------------------------------------
+
 
