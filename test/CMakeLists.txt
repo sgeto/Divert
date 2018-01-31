@@ -3,7 +3,7 @@
 
 # include_directories(
   # ${CMAKE_CURRENT_BINARY_DIR}
-  # ${WinDivert_SOURCE_DIR}/include
+  # ${CMAKE_SOURCE_DIR}/include
 # )
 
 # The target (make target) to run the test app directly with make/nmake/msbuild etc...
@@ -23,10 +23,10 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -V)
   if(ENABLE_STATIC_LIB)
   # XXX- add this globally
     add_definitions(-DWINDIVERTSTATIC -DWINDIVERTSTATIC)
-    target_link_libraries(test_all lib${PROJECT_NAME})
+    target_link_libraries(test_all lib${CMAKE_PROJECT_NAME})
     set_target_properties(test_all PROPERTIES COMPILE_FLAGS -DWINDIVERTSTATIC)
   else()
-      target_link_libraries(test_all ${PROJECT_NAME})
+      target_link_libraries(test_all ${CMAKE_PROJECT_NAME})
   endif()
   add_test(test_all ${CMAKE_CURRENT_BINARY_DIR}/test_all)
 # endmacro()

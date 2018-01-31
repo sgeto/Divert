@@ -1,6 +1,6 @@
 
 message(WARNING "FIX ME!")
-message(FATAL_ERROR "MSVC_VERSION: ${MSVC_VERSION}")
+message(WARNING "MSVC_VERSION: ${MSVC_VERSION}")
 
 # include(FindWDK.cmake)
 
@@ -13,6 +13,38 @@ message(WARNING "WDK_FOUND: ${WDK_FOUND} WDK_INCLUDE_DIRS: ${WDK_INCLUDE_DIRS} W
 message(WARNING "WINDOWSSDK_FOUND: ${WINDOWSSDK_FOUND} WINDOWSSDK_LATEST_DIR: ${WINDOWSSDK_LATEST_DIR} WINDOWSSDK_LATEST_NAME: ${WINDOWSSDK_LATEST_NAME} WINDOWSSDK_FOUND_PREFERENCE: ${WINDOWSSDK_FOUND_PREFERENCE} WINDOWSSDK_DIRS: ${WINDOWSSDK_DIRS}")
 
 message(WARNING "WINHID_INCLUDE_DIR: ${WINHID_INCLUDE_DIR} WINHID_CRT_INCLUDE_DIR: ${WINHID_CRT_INCLUDE_DIR} WINHID_LIBRARY: ${WINHID_LIBRARY} WINHID_FOUND: ${WINHID_FOUND}")
+
+if(NOT ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+  file(COPY ${CMAKE_SOURCE_DIR}/inf DESTINATION ${CMAKE_BINARY_DIR})
+endif()
+
+# WinDivert.vcxproj WinDivert.vcxproj.filters
+
+configure_file("${CMAKE_SCRIPT_PATH}/${CMAKE_PROJECT_NAME}.universal.props.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.universal.props"
+  NEWLINE_STYLE WIN32 @ONLY)
+
+configure_file("${CMAKE_SCRIPT_PATH}/${CMAKE_PROJECT_NAME}.vcxproj.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.vcxproj"
+  NEWLINE_STYLE WIN32 @ONLY)
+
+configure_file("${CMAKE_SCRIPT_PATH}/${CMAKE_PROJECT_NAME}.vcxproj.filters.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.vcxproj.filters"
+  NEWLINE_STYLE WIN32 @ONLY)
+
+add_custom_target(driver ALL
+cmake --build ${CMAKE_CURRENT_BINARY_DIR}/sys --target WinDivert
+# COMMAND \"${CMAKE_COMMAND}\" \"-E\" \"remove\" \"${TARGET}\" [command1 [args1...]]
+
+# COMMAND \"${CMAKE_COMMAND}\" \"-E\" \"remove\" \"${TARGET}\" [command1 [args1...]]
+                  # [DEPENDS depend depend depend ... ]
+                  # [BYPRODUCTS [files...]]
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Building kernel module ${CMAKE_PROJECT_NAME}${BITS}.sys"]
+                  # [VERBATIM] [USES_TERMINAL]
+                  # [COMMAND_EXPAND_LISTS]
+                  # [SOURCES src1 [src2...]]
+                  )
 
 # Variables:
 #  WINDOWSSDK_FOUND - if any version of the windows or platform SDK was found that is usable with the current version of visual studio

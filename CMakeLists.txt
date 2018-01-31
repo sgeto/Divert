@@ -11,7 +11,7 @@ NOT ${CMAKE_SYSTEM_NAME} MATCHES "WindowsCE" AND
 NOT ${CMAKE_SYSTEM_NAME} MATCHES "WindowsPhone" AND
 NOT ${CMAKE_SYSTEM_NAME} MATCHES "WindowsStore")
   message(FATAL_ERROR "OS \"${CMAKE_SYSTEM_NAME}\" is not supported. \
-${PROJECT_NAME} is a Windows-only project.")
+${CMAKE_PROJECT_NAME} is a Windows-only project.")
 endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
@@ -26,7 +26,7 @@ set(CMAKE_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/cmake/Scripts")
 # mixing binaries produces by other means (mingw-build.sh, msvc-build.bat etc).
 # See README (within this package) or cmake's docs for more infos.
 include(MacroEnsureOutOfSourceBuild)
-macro_ensure_out_of_source_build("${PROJECT_NAME} requires an out-of-source build. Please create a separate build directory and run 'cmake /path/to/${PROJECT_NAME} [options]' there.")
+macro_ensure_out_of_source_build("${CMAKE_PROJECT_NAME} requires an out-of-source build. Please create a separate build directory and run 'cmake /path/to/${CMAKE_PROJECT_NAME} [options]' there.")
 
 # VERSIONING
 # ==========
@@ -102,7 +102,7 @@ else()
   set(BITS unknown)
 endif()
 
-include_directories(${WinDivert_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 if(NOT ENABLE_STATIC_LIB)
 # Build all runtimes in the top-level binary directory; that way,
@@ -231,13 +231,14 @@ endif()
 
 # UNINSTALLATION
 # ==============
+# XXX - "IMMEDIATE" is not in cmake's docs... check if important
 configure_file(
-    "${CMAKE_SCRIPT_PATH}/cmake_uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-    IMMEDIATE @ONLY)
+  "${CMAKE_SCRIPT_PATH}/cmake_uninstall.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+  IMMEDIATE @ONLY)
 
 add_custom_target(uninstall
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 # MISCELLANEOUS
 # =============
@@ -245,7 +246,7 @@ add_custom_target(uninstall
 # If we notice that this isn't the first time they've run 
 if(NOT ("${CMAKE_CACHEFILE_DIR}" STREQUAL ""))
   message("")
-  message("HAVING TROUBLE BUILDING ${PROJECT_NAME}? ")
+  message("HAVING TROUBLE BUILDING ${CMAKE_PROJECT_NAME}? ")
   message("")
   message("  1. Install any missing dependencies")
   message("  2. run 'make clean-all'")
@@ -259,5 +260,6 @@ add_custom_target(clean-all
   COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SCRIPT_PATH}/clean-all.cmake)
 
 # XXX - Add a nice build summary at the end
+include(WinDivertSummary)
 include(FeatureSummary)
 feature_summary(WHAT ALL)

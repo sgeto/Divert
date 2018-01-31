@@ -4,16 +4,16 @@
 
 # include_directories(
   # ${CMAKE_CURRENT_BINARY_DIR}
-  # ${WinDivert_SOURCE_DIR}/include
+  # ${CMAKE_SOURCE_DIR}/include
 # )
 
 # ADD_LIBRARY(divert OBJECT "windivert.c" "windivert_helper.c")
 # XXX - should we say ${CMAKE_PROJECT_NAME} from cmakecache.txt instead? read docs!
-ADD_LIBRARY(${PROJECT_NAME} SHARED "windivert.c")
-# ADD_LIBRARY(windivert SHARED "windivert.c" "${WinDivert_SOURCE_DIR}/sys/windivert.rc")
+ADD_LIBRARY(${CMAKE_PROJECT_NAME} SHARED "windivert.c")
+# ADD_LIBRARY(windivert SHARED "windivert.c" "${CMAKE_SOURCE_DIR}/sys/windivert.rc")
 
 if(ENABLE_STATIC_LIB)
-ADD_LIBRARY(lib${PROJECT_NAME} STATIC "windivert.c")
+ADD_LIBRARY(lib${CMAKE_PROJECT_NAME} STATIC "windivert.c")
 endif()
 
 if (MINGW)
