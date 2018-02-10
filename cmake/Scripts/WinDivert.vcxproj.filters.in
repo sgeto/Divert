@@ -19,8 +19,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="WinDivert.inf">
+    <Inf Include="..\inf\WinDivert$(PlatformArchitecture).inf">
       <Filter>Driver Files</Filter>
     </Inf>
-  </ItemGroup>  
+  </ItemGroup>
 </Project>

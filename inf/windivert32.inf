@@ -41,8 +41,8 @@ ErrorControl = 1 ; SERVICE_ERROR_NORMAL
 ServiceBinary = %12%\WinDivert32.sys
 
 [Strings]
-%Basil% = "Basil"
-%DiskName% = "WinDivert Installation Disk"
-%Description% = "WinDivert Driver"
-%ServiceName% = "WinDivert"
-%ServiceDesc% = "WinDivert Driver"
+Basil = "Basil"
+DiskName = "WinDivert Installation Disk"
+Description = "WinDivert Driver"
+ServiceName = "WinDivert"
+ServiceDesc = "WinDivert Driver"

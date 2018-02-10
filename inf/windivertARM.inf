@@ -3,14 +3,14 @@ Signature = "$Windows NT$"
 Class = WFPCALLOUTS
 ClassGuid = {57465043-616C-6C6F-7574-5F636C617373}
 Provider = %Basil%
-CatalogFile = WinDivert64.Cat
+CatalogFile = WinDivertARM.Cat
 DriverVer = 10/22/2017,1.4.0
 
 [SourceDisksNames]
 1 = %DiskName%
 
 [SourceDisksFiles]
-WinDivert64.sys = 1
+WinDivertARM.sys = 1
 
 [DestinationDirs]
 DefaultDestDir = 12 ; %windir%\system32\drivers
@@ -30,7 +30,7 @@ DelFiles = WinDivertCalloutDriver.DriverFiles
 DelService = WinDivertCalloutDriver,0x200 ; SPSVCINST_STOPSERVICE
 
 [WinDivertCalloutDriver.DriverFiles]
-WinDivert64.sys,,,0x00000040 ; COPYFLG_OVERWRITE_OLDER_ONLY
+WinDivertARM.sys,,,0x00000040 ; COPYFLG_OVERWRITE_OLDER_ONLY
 
 [WinDivertCalloutDriver.Service]
 DisplayName = %ServiceName%
@@ -38,7 +38,7 @@ Description = %ServiceDesc%
 ServiceType = 1  ; SERVICE_KERNEL_DRIVER
 StartType = 0    ; SERVICE_BOOT_START
 ErrorControl = 1 ; SERVICE_ERROR_NORMAL
-ServiceBinary = %12%\WinDivert64.sys
+ServiceBinary = %12%\WinDivertARM.sys
 
 [Strings]
 Basil = "Basil"

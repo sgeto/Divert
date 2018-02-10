@@ -2,6 +2,54 @@
 message(WARNING "FIX ME!")
 message(WARNING "MSVC_VERSION: ${MSVC_VERSION}")
 
+enable_language(NONE)
+
+# Set global directories
+
+SET(WD_INC_DIR ${CMAKE_SOURCE_DIR}/include)
+SET(WD_INF_DIR ${CMAKE_SOURCE_DIR}/inf)
+SET(WD_SYS_DIR ${CMAKE_SOURCE_DIR}/sys)
+
+# INCLUDE(genvsfilelist)
+# INCLUDE(genvsfilters)
+
+SET(WD_SYS_SOURCES
+    ${WD_SYS_DIR}/windivert.c
+    )
+
+SET(WD_INF_SOURCES
+    ${WD_INF_DIR}/WinDivert$(PlatformArchitecture).inf
+    )
+
+SET(WD_RC_SOURCES
+    ${WD_SYS_DIR}/windivert.rc
+    )
+
+SET(TreatWarningAsError "false")
+set(Inf2CatUseLocalTime "true")
+set(PreprocessorDefinitions
+  BINARY_COMPATIBLE=0
+  NT
+  UNICODE
+  _UNICODE
+  NDIS60
+  NDIS_SUPPORT_NDIS60
+  )
+set(DbgPreprocessorDefinitions DEBUG_ON)
+
+set(AdditionalDependencies
+  $(DDK_LIB_PATH)\\wdmsec.lib
+  $(DDK_LIB_PATH)\\ndis.lib
+  $(DDK_LIB_PATH)\\fwpkclnt.lib
+  $(SDK_LIB_PATH)\\uuid.lib
+  )
+
+# GEN_VS_FILTER_LIST("${WD_SYS_SOURCES}" "" PART_VS_FILTER_LIST)
+# SET(VS_FILTER_LIST "${VS_FILTER_LIST} ${PART_VS_FILTER_LIST}")
+
+# CONFIGURE_FILE(${CMAKE_SCRIPT_PATH}/sourceslist.in ${CMAKE_CURRENT_BINARY_DIR}/sources.targets @ONLY)
+# CONFIGURE_FILE(${CMAKE_SCRIPT_PATH}/sourcefilters.in ${CMAKE_CURRENT_BINARY_DIR}/filters.targets @ONLY)
+
 # include(FindWDK.cmake)
 
 find_package(WDK REQUIRED)
@@ -16,6 +64,7 @@ message(WARNING "WINHID_INCLUDE_DIR: ${WINHID_INCLUDE_DIR} WINHID_CRT_INCLUDE_DI
 
 if(NOT ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   file(COPY ${CMAKE_SOURCE_DIR}/inf DESTINATION ${CMAKE_BINARY_DIR})
+  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/windivert.c ${CMAKE_CURRENT_SOURCE_DIR}/windivert.rc DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
 # WinDivert.vcxproj WinDivert.vcxproj.filters
@@ -33,7 +82,7 @@ configure_file("${CMAKE_SCRIPT_PATH}/${CMAKE_PROJECT_NAME}.vcxproj.filters.in"
   NEWLINE_STYLE WIN32 @ONLY)
 
 add_custom_target(driver ALL
-cmake --build ${CMAKE_CURRENT_BINARY_DIR}/sys --target WinDivert
+cmake --build ${CMAKE_CURRENT_BINARY_DIR} --target WinDivert
 # COMMAND \"${CMAKE_COMMAND}\" \"-E\" \"remove\" \"${TARGET}\" [command1 [args1...]]
 
 # COMMAND \"${CMAKE_COMMAND}\" \"-E\" \"remove\" \"${TARGET}\" [command1 [args1...]]
@@ -43,7 +92,7 @@ cmake --build ${CMAKE_CURRENT_BINARY_DIR}/sys --target WinDivert
   COMMENT "Building kernel module ${CMAKE_PROJECT_NAME}${BITS}.sys"]
                   # [VERBATIM] [USES_TERMINAL]
                   # [COMMAND_EXPAND_LISTS]
-                  # [SOURCES src1 [src2...]]
+                  # SOURCES windivert.c windivert.rc
                   )
 
 # Variables:
