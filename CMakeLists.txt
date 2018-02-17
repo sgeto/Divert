@@ -1,4 +1,15 @@
-cmake_minimum_required(VERSION 3.1)
+# XXX - Support for Universal Windows projects are provided from cmake version 3.4.0 onwards.
+# https://docs.travis-ci.com/user/languages/cpp/
+# Ubuntu 12.04 ships with cmake 2.8.7 and Ubuntu 14.04 ships with cmake 3.2.2.
+# You can upgrade cmake to 3.2.3 on Precise from the george-edison55-precise-backports source (note that the cmake-data package contains dependencies which Aptitude does not automatically resolve), c.f.
+# So if we're *not* building Universal or if we're cross-compiling (not building
+# the driver), the minimum version can/should be lowered)
+# The minimum required cmake version really only matters when cross compiling
+# as some operating system/distros only provided very old cmake builds by
+# default.
+
+# if(not cross-compiling blblabla
+cmake_minimum_required(VERSION 3.4)
 
 project(WinDivert C)
 
@@ -77,14 +88,20 @@ endif()
 # XXX - ENABLE_DEBUG implies cmake_build type=debug and/or RelWithDebInfo
 option(ENABLE_DEBUG "Enable various debugging features" OFF)
 if(ENABLE_DEBUG)
-    option(ENABLE_WSOCKTRACE "Build with WSOCK-TRACE instead of winsock2" OFF)
+    option(ENABLE_WSOCKTRACE "Link with WSOCK-TRACE instead of winsock2" OFF)
 endif()
+
+# XXX - off for now
+option(ENABLE_SUMMARY "PRint a summary at the end of configuration step" OFF)
+
+
+
 
 # options useful for package maintainers
 # XXX - use cpack instead?
 # XXX - forcefully overwrite install_prefix when this is on
 # XXX - forcefully set ENABLE_EXAMPLES, ENABLE_STATIC_LIB and ENABLE_DRIVER to "ON"
-option(ENABLE_RELEASE "Build a WinDivert binary package")
+option(ENABLE_RELEASE "Build a WinDivert binary package" OFF)
 
 # BUILD PARAMETERS
 # ================
@@ -94,9 +111,14 @@ option(ENABLE_RELEASE "Build a WinDivert binary package")
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
   set(CPU i386)
   set(BITS 32)
+  # ADD_DEFINITIONS(-D_X86_=1)
+  # ADD_DEFINITIONS(-Di386=1)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(CPU x86_64)
   set(BITS 64)
+  # ADD_DEFINITIONS(-D_WIN64)
+  # ADD_DEFINITIONS(-D_AMD64_)
+  # ADD_DEFINITIONS(-DAMD64)
 else()
   set(CPU unknown)
   set(BITS unknown)
@@ -180,6 +202,8 @@ if(ENABLE_EXAMPLES)
 endif()
 
 if(ENABLE_TESTS)
+  # required for unit testing using CMake's ctest command
+  include(CTest)
   enable_testing()
   add_subdirectory(test)
 endif()
@@ -244,15 +268,16 @@ add_custom_target(uninstall
 # =============
 
 # If we notice that this isn't the first time they've run 
-if(NOT ("${CMAKE_CACHEFILE_DIR}" STREQUAL ""))
-  message("")
-  message("HAVING TROUBLE BUILDING ${CMAKE_PROJECT_NAME}? ")
-  message("")
-  message("  1. Install any missing dependencies")
-  message("  2. run 'make clean-all'")
-  message("  3. run 'cmake ${CMAKE_SOURCE_DIR}'")
-  message("")
-endif(NOT ("${CMAKE_CACHEFILE_DIR}" STREQUAL ""))
+# XXX - Only call this or the summary. never both
+# if(NOT ("${CMAKE_CACHEFILE_DIR}" STREQUAL ""))
+  # message("")
+  # message("HAVING TROUBLE BUILDING ${CMAKE_PROJECT_NAME}? ")
+  # message("")
+  # message("  1. Install any missing dependencies")
+  # message("  2. run 'make clean-all'")
+  # message("  3. run 'cmake ${CMAKE_SOURCE_DIR}'")
+  # message("")
+# endif()
 
 # Add a target that will ensure that the build directory is properly cleaned.
 add_custom_target(clean-all
@@ -260,6 +285,11 @@ add_custom_target(clean-all
   COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SCRIPT_PATH}/clean-all.cmake)
 
 # XXX - Add a nice build summary at the end
+if(ENABLE_SUMMARY)
 include(WinDivertSummary)
+endif()
 include(FeatureSummary)
+IF(CMAKE_VERSION VERSION_GREATER 3)
+	FEATURE_SUMMARY(WHAT ENABLED_FEATURES DISABLED_FEATURES)
+ENDIF()
 feature_summary(WHAT ALL)

@@ -24,9 +24,10 @@ if (MINGW)
   set_target_properties(${project} PROPERTIES 
                         PREFIX ""
                         OUTPUT_NAME "windivert"
-  )
+)
+
   # set_target_properties(${LIBRARY_NAME}_static PROPERTIES
-                        # OUTPUT_NAME "${LIBRARY_NAME}"
+                        # COMPILE_DEFINITIONS "WINDIVERTEXPORT="
 # )
 endif()
 

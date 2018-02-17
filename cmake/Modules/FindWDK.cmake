@@ -1,58 +1,159 @@
-# - Try to find WDK
-# This module takes as inputs
-#  WDK_ROOT_ALTERNATE - An alternate possible location for the wdk
+# Redistribution and use is allowed under the OSI-approved 3-clause BSD license.
+# Copyright (c) 2018 Sergey Podobry (sergey.podobry at gmail.com). All rights reserved.
+
+#.rst:
+# FindWDK
+# ----------
 #
-# Once done this will define
-#  WDK_FOUND - System has WDK
-#  WDK_INCLUDE_DIRS - The WDK include directory
-#  WDK_LIBRARIES - The libraries needed to use WDK
-#  WDK_BIN - The path to the WDK binaries folder
+# This module searches for the installed Windows Development Kit (WDK) and 
+# exposes commands for creating kernel drivers and kernel libraries.
+#
+# Output variables:
+# - `WDK_FOUND` -- if false, do not try to use WDK
+# - `WDK_ROOT` -- where WDK is installed
+# - `WDK_VERSION` -- the version of the selected WDK
+# - `WDK_WINVER` -- the WINVER used for kernel drivers and libraries 
+#        (default value is `0x0601` and can be changed per target or globally)
+#
+# Example usage:
+#
+#   find_package(WDK REQUIRED)
+#
+#   wdk_add_library(KmdfCppLib STATIC KMDF 1.15
+#       KmdfCppLib.h 
+#       KmdfCppLib.cpp
+#       )
+#   target_include_directories(KmdfCppLib INTERFACE .)
+#
+#   wdk_add_driver(KmdfCppDriver KMDF 1.15
+#       Main.cpp
+#       )
+#    target_link_libraries(KmdfCppDriver KmdfCppLib)
+#
 
-set(wdkregpath80 "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots;KitsRoot]")
-get_filename_component(wdkpath80 ${wdkregpath80} ABSOLUTE)
+file(GLOB WDK_NTDDK_FILES
+    "C:/Program Files*/Windows Kits/10/Include/*/km/ntddk.h"
+)
 
-set(wdkregpath81 "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots;KitsRoot81]")
-get_filename_component(wdkpath81 ${wdkregpath81} ABSOLUTE)
-
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
- set(WDK_ARCH "x64")
-else()
- set(WDK_ARCH "x86")
+if(WDK_NTDDK_FILES)
+    list(GET WDK_NTDDK_FILES -1 WDK_LATEST_NTDDK_FILE)
 endif()
-
-# Select a root path first:
-find_path(
-  WDK_ROOT_DIR Include/um/UPnP.h  
-  HINTS ${wdkpath81} ${wdkpath80} ${WDK_ROOT_ALTERNATE}
-)
-
-# Generate include directories variable from the root path
-set(WDK_INCLUDE_DIRS ${WDK_ROOT_DIR}/Include/um ${WDK_ROOT_DIR}/Include/Shared)
-
-# Also generate the binaries directory:
-find_path(
-  WDK_BIN_DIR makecat.exe
-  HINTS ${WDK_ROOT_DIR}/bin/${WDK_ARCH}
-)
-
-# Now we scan for all components:
-foreach(COMPONENT ${WDK_FIND_COMPONENTS})
-  string(TOUPPER ${COMPONENT} UPPERCOMPONENT)
-  
-  find_library(
-    WDK_${UPPERCOMPONENT} ${COMPONENT}
-    PATHS ${WDK_ROOT_DIR}
-    PATH_SUFFIXES /Lib/win8/um/${WDK_ARCH} /Lib/winv6.3/um/${WDK_ARCH}
-  )
-  mark_as_advanced(CLEAR WDK_${UPPERCOMPONENT})
-  list(APPEND WDK_LIBRARIES ${WDK_${UPPERCOMPONENT}})
-endforeach()
 
 include(FindPackageHandleStandardArgs)
-if(WDK_FIND_COMPONENTS)
-  find_package_handle_standard_args(WDK DEFAULT_MSG WDK_LIBRARIES WDK_INCLUDE_DIRS)
+find_package_handle_standard_args(WDK REQUIRED_VARS WDK_LATEST_NTDDK_FILE)
+
+get_filename_component(WDK_ROOT ${WDK_LATEST_NTDDK_FILE} DIRECTORY)
+get_filename_component(WDK_ROOT ${WDK_ROOT} DIRECTORY)
+get_filename_component(WDK_VERSION ${WDK_ROOT} NAME)
+get_filename_component(WDK_ROOT ${WDK_ROOT} DIRECTORY)
+get_filename_component(WDK_ROOT ${WDK_ROOT} DIRECTORY)
+
+message(STATUS "WDK_ROOT: " ${WDK_ROOT})
+message(STATUS "WDK_VERSION: " ${WDK_VERSION})
+
+set(WDK_WINVER "0x0601" CACHE STRING "Default WINVER for WDK targets")
+
+set(WDK_ADDITIONAL_FLAGS_FILE "${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/wdkflags.h")
+file(WRITE ${WDK_ADDITIONAL_FLAGS_FILE} "#pragma runtime_checks(\"suc\", off)")
+
+set(WDK_COMPILE_FLAGS
+    "/Zp8" # set struct alignment
+    "/GF"  # enable string pooling
+    "/GR-" # disable RTTI
+    "/Gz" # __stdcall by default
+    "/kernel"  # create kernel mode binary
+    "/FIwarning.h" # disable warnings in WDK headers
+    "/FI${WDK_ADDITIONAL_FLAGS_FILE}" # include file to disable RTC
+    )
+
+set(WDK_COMPILE_DEFINITIONS "WINNT=1")
+set(WDK_COMPILE_DEFINITIONS_DEBUG "MSC_NOOPT;DEPRECATE_DDK_FUNCTIONS=1;DBG=1")
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    list(APPEND WDK_COMPILE_DEFINITIONS "_X86_=1;i386=1;STD_CALL")
+    set(WDK_PLATFORM "x86")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    list(APPEND WDK_COMPILE_DEFINITIONS "_WIN64;_AMD64_;AMD64")
+    set(WDK_PLATFORM "x64")
 else()
-  find_package_handle_standard_args(WDK DEFAULT_MSG WDK_INCLUDE_DIRS)
+    message(FATAL_ERROR "Unsupported architecture")
 endif()
 
+string(CONCAT WDK_LINK_FLAGS
+    "/MANIFEST:NO " #
+    "/DRIVER " #
+    "/OPT:REF " #
+    "/INCREMENTAL:NO " #
+    "/OPT:ICF " #
+    "/SUBSYSTEM:NATIVE " #
+    "/MERGE:_TEXT=.text;_PAGE=PAGE " #
+    "/NODEFAULTLIB " # do not link default CRT
+    "/SECTION:INIT,d " #
+    "/VERSION:10.0 " #
+    )
 
+function(wdk_add_driver _target)
+    cmake_parse_arguments(WDK "" "KMDF;WINVER" "" ${ARGN})
+
+    link_directories("${WDK_ROOT}/Lib/${WDK_VERSION}/km/${WDK_PLATFORM}")
+
+    add_executable(${_target} ${WDK_UNPARSED_ARGUMENTS})
+
+    set_target_properties(${_target} PROPERTIES SUFFIX ".sys")
+    set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${WDK_COMPILE_FLAGS}")
+    set_target_properties(${_target} PROPERTIES COMPILE_DEFINITIONS
+        "${WDK_COMPILE_DEFINITIONS};$<$<CONFIG:Debug>:${WDK_COMPILE_DEFINITIONS_DEBUG}>;_WIN32_WINNT=${WDK_WINVER}"
+        )
+    set_target_properties(${_target} PROPERTIES LINK_FLAGS "${WDK_LINK_FLAGS}")
+
+    target_include_directories(${_target} SYSTEM PRIVATE
+        "${WDK_ROOT}/Include/${WDK_VERSION}/shared"
+        "${WDK_ROOT}/Include/${WDK_VERSION}/km"
+        )
+
+    target_link_libraries(${_target} ntoskrnl hal BufferOverflowK wmilib)
+
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        target_link_libraries(${_target} "${WDK_ROOT}/Lib/${WDK_VERSION}/km/${WDK_PLATFORM}/memcmp.lib")
+    endif()
+
+    if(DEFINED WDK_KMDF)
+        target_include_directories(${_target} SYSTEM PRIVATE "${WDK_ROOT}/Include/wdf/kmdf/${WDK_KMDF}")
+        target_link_libraries(${_target}
+            "${WDK_ROOT}/Lib/wdf/kmdf/${WDK_PLATFORM}/${WDK_KMDF}/WdfDriverEntry.lib"
+            "${WDK_ROOT}/Lib/wdf/kmdf/${WDK_PLATFORM}/${WDK_KMDF}/WdfLdr.lib"
+            )
+
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            set_property(TARGET ${_target} APPEND_STRING PROPERTY LINK_FLAGS "/ENTRY:FxDriverEntry@8")
+        elseif(CMAKE_SIZEOF_VOID_P  EQUAL 8)
+            set_property(TARGET ${_target} APPEND_STRING PROPERTY LINK_FLAGS "/ENTRY:FxDriverEntry")
+        endif()
+    else()
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            set_property(TARGET ${_target} APPEND_STRING PROPERTY LINK_FLAGS "/ENTRY:GsDriverEntry@8")
+        elseif(CMAKE_SIZEOF_VOID_P  EQUAL 8)
+            set_property(TARGET ${_target} APPEND_STRING PROPERTY LINK_FLAGS "/ENTRY:GsDriverEntry")
+        endif()
+    endif()
+endfunction()
+
+function(wdk_add_library _target)
+    cmake_parse_arguments(WDK "" "KMDF;WINVER" "" ${ARGN})
+
+    add_library(${_target} ${WDK_UNPARSED_ARGUMENTS})
+
+    set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${WDK_COMPILE_FLAGS}")
+    set_target_properties(${_target} PROPERTIES COMPILE_DEFINITIONS 
+        "${WDK_COMPILE_DEFINITIONS};$<$<CONFIG:Debug>:${WDK_COMPILE_DEFINITIONS_DEBUG};_WIN32_WINNT=${WDK_WINVER}>"
+        )
+
+    target_include_directories(${_target} SYSTEM PRIVATE
+        "${WDK_ROOT}/Include/${WDK_VERSION}/shared"
+        "${WDK_ROOT}/Include/${WDK_VERSION}/km"
+        )
+
+    if(DEFINED WDK_KMDF)
+        target_include_directories(${_target} SYSTEM PRIVATE "${WDK_ROOT}/Include/wdf/kmdf/${WDK_KMDF}")
+    endif()
+endfunction()

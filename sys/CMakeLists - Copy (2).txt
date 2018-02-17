@@ -1,0 +1,209 @@
+message(STATUS "MSVC_VERSION: ${MSVC_VERSION}")
+
+find_package(WDK REQUIRED)
+find_package(WindowsSDK)
+find_package(WinHID)
+
+message(WARNING "WDK_FOUND: ${WDK_FOUND} WDK_INCLUDE_DIRS: ${WDK_INCLUDE_DIRS} WDK_LIBRARIES: ${WDK_LIBRARIES} WDK_BIN: ${WDK_BIN}")
+
+message(WARNING "WINDOWSSDK_FOUND: ${WINDOWSSDK_FOUND} WINDOWSSDK_LATEST_DIR: ${WINDOWSSDK_LATEST_DIR} WINDOWSSDK_LATEST_NAME: ${WINDOWSSDK_LATEST_NAME} WINDOWSSDK_FOUND_PREFERENCE: ${WINDOWSSDK_FOUND_PREFERENCE} WINDOWSSDK_DIRS: ${WINDOWSSDK_DIRS}")
+
+message(WARNING "WINHID_INCLUDE_DIR: ${WINHID_INCLUDE_DIR} WINHID_CRT_INCLUDE_DIR: ${WINHID_CRT_INCLUDE_DIR} WINHID_LIBRARY: ${WINHID_LIBRARY} WINHID_FOUND: ${WINHID_FOUND}")
+
+# INCLUDE_DIRECTORIES(${WDK_INCLUDE_DIRS})
+
+# INCLUDE_DIRECTORIES(${DDK_INC})
+# INCLUDE_DIRECTORIES(${WINHID_INCLUDE_DIR})
+
+include(CheckIncludeFile)
+
+# XXX - turn these into macros
+# C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\km
+# C:\Program Files (x86)\Windows Kits\10\lib\10.0.14393.0\km\x64
+# C:\Program Files (x86)\Windows Kits\10\Include\wdf\kmdf\1.15
+
+CHECK_INCLUDE_FILE(ntddk.h HAVE_NTDDK_H)
+if(NOT HAVE_NTDDK_H)
+  FIND_PATH(NTDDK_H_INCLUDE_DIR ntddk.h
+    PATHS "${WINHID_INCLUDE_DIR}/../km")
+  if(NTDDK_H_INCLUDE_DIR)
+    message(WARNING "NTDDK_H_INCLUDE_DIR: ${NTDDK_H_INCLUDE_DIR}!!!!")
+    include_directories(${NTDDK_H_INCLUDE_DIR})
+  else()
+    message(FATAL_ERROR "ntddk.h not found! See README.CMAKE for more information.")
+  endif()
+endif()
+
+# XXX - abstract ...Include/wdf/kmdf/1.15 aka $(KMDF_INC_PATH)$(KMDF_VER_PATH) to appropriate path
+CHECK_INCLUDE_FILE(wdf.h HAVE_WDF_H)
+if(NOT HAVE_WDF_H)
+  FIND_PATH(WDF_H_INCLUDE_DIR wdf.h
+    PATHS "${WINHID_INCLUDE_DIR}/../../wdf/kmdf/1.15")
+  if(WDF_H_INCLUDE_DIR)
+    message(WARNING "WDF_H_INCLUDE_DIR: ${WDF_H_INCLUDE_DIR}!!!!")
+    include_directories(${WDF_H_INCLUDE_DIR})
+  else()
+    message(FATAL_ERROR "wdf.h not found! See README.CMAKE for more information.")
+  endif()
+endif()
+
+# XXX - abstract x64 aka $(DDKPlatform) to appropriate architecture
+FIND_LIBRARY(HAVE_FWPKCLNT fwpkclnt
+    PATHS "${WINHID_INCLUDE_DIR}/../../../Lib/10.0.14393.0/km/x64")
+if(HAVE_FWPKCLNT)
+    message(WARNING "HAVE_FWPKCLNT: ${HAVE_FWPKCLNT}!!!!")
+else()
+    message(FATAL_ERROR "fwpkclnt.lib not found!")
+endif()
+
+# Do not define BINARY_COMPATIBLE, USE_KLOCKS, or WIRELESS_WAN; these are deprecated.
+# ADD_DEFINITIONS(-DBINARY_COMPATIBLE=0)
+# ADD_DEFINITIONS(-DNT)
+
+
+# Windows 7 and Windows Server 2008 R2 support NDIS 6.20.
+# Windows CE (ARM) supports NDIS 5.1
+ADD_DEFINITIONS(-DNDIS620)
+
+# Code should define only the versions it explicitly supports at runtime (NDIS620).
+# Code may inspect the value of NDIS_SUPPORT_NDIS620, but must not attempt to define it directly:
+# ADD_DEFINITIONS(-DNDIS_SUPPORT_NDIS620)
+
+
+# ADD_DEFINITIONS(-DUNICODE)
+# ADD_DEFINITIONS(-D_UNICODE)
+
+# ADD_DEFINITIONS(-D_WIN64)
+# ADD_DEFINITIONS(-D_AMD64_)
+# ADD_DEFINITIONS(-DAMD64)
+# ADD_DEFINITIONS(-DDEPRECATE_DDK_FUNCTIONS=1)
+# ADD_DEFINITIONS(-DMSC_NOOPT)
+ADD_DEFINITIONS(-D_WIN32_WINNT=0x0601)  # Windows 7
+# ADD_DEFINITIONS(-DWINVER=0x0A00)      # Windows 10
+# ADD_DEFINITIONS(-DWINNT=1)
+ADD_DEFINITIONS(-DNTDDI_VERSION=0x06010000)
+ADD_DEFINITIONS(-DDBG=1)
+
+# Set global directories
+
+SET(WD_INC_DIR ${CMAKE_SOURCE_DIR}/include)
+SET(WD_INF_DIR ${CMAKE_SOURCE_DIR}/inf)
+SET(WD_SYS_DIR ${CMAKE_SOURCE_DIR}/sys)
+
+# INCLUDE(genvsfilelist)
+# INCLUDE(genvsfilters)
+
+# XXX - change BITS to ARCH!
+SET(WD_INF_SOURCES
+    ${CMAKE_SOURCE_DIR}/inf/WinDivert${BITS}.inf
+)
+
+SET(WD_RC_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/windivert.rc
+)
+
+SET(WD_SYS_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/windivert.c
+    ${WD_RC_SOURCES}
+)
+
+function (set_ddk_options _target)
+    FIND_FILE(NTDDKPATH "ntddk.h")
+    IF(NOT ("${NTDDKPATH}" STREQUAL "NTDDKPATH-NOTFOUND"))
+        GET_FILENAME_COMPONENT(DDK_INC ${NTDDKPATH} DIRECTORY)
+        INCLUDE_DIRECTORIES(${DDK_INC}) 
+    ENDIF()
+
+    FIND_LIBRARY(DDK_LIBPATH "ntoskrnl")
+    IF(NOT ("${DDK_LIBPATH}" STREQUAL "DDK_LIBPATH-NOTFOUND"))
+        GET_FILENAME_COMPONENT(DDK_LIB ${DDK_LIBPATH} DIRECTORY)
+        LINK_DIRECTORIES(${DDK_LIB}) 
+    ENDIF()
+endfunction()
+
+
+# XXX - you mustn't have this as a macro if you're only building one driver.
+# But we keep it for the "maintainer" option.
+macro (set_type_driver _target)
+# XXX - SIZEOF_VOID_PTR is obsolete
+include(CheckTypeSize)
+check_type_size(void* SIZEOF_VOID_PTR)
+if("${SIZEOF_VOID_PTR}" STREQUAL "4")
+    ADD_DEFINITIONS(-D_X86_=1)
+    ADD_DEFINITIONS(-Di386=1)
+elseif("${SIZEOF_VOID_PTR}" STREQUAL "8")
+    ADD_DEFINITIONS(-D_WIN64)
+    ADD_DEFINITIONS(-D_AMD64_)
+    ADD_DEFINITIONS(-DAMD64)
+else()
+    message(FATAL_ERROR "Unsupported architecture")
+    return()
+endif()
+
+# ADD_DEFINITIONS(-D_WIN32_WINNT=0x0501)
+
+# adjust linker options
+foreach(item _CMAKE_VS_LINK_DLL 
+    CMAKE_C_CREATE_SHARED_LIBRARY
+    CMAKE_C_CREATE_SHARED_MODULE
+    CMAKE_SHARED_LINKER_FLAGS_DEBUG)
+STRING(REPLACE "–manifests <MANIFESTS>" "" ${item} ${${item}})
+STRING(REPLACE "/INCREMENTAL:YES " "" ${item} ${${item}})
+STRING(REPLACE "/INCREMENTAL" "" ${item} ${${item}})
+#STRING (REPLACE "/debug" "/release" ${item} ${${item}})
+STRING(REPLACE "/dll" "/driver" ${item} ${${item}})
+endforeach()
+ 
+# adjust cl options
+foreach(item CMAKE_C_FLAGS
+    CMAKE_C_FLAGS_DEBUG
+    CMAKE_C_FLAGS_RELEASE)
+STRING(REGEX REPLACE "/RTC(su|[1su])" "" ${item} ${${item}})
+STRING(REGEX REPLACE "/EH(sc|a)" "" ${item} ${${item}})
+STRING(REGEX REPLACE "/GS" "" ${item} ${${item}})
+STRING(REGEX REPLACE "/GR" "" ${item} ${${item}})
+endforeach()
+
+# remove default libraries
+set(CMAKE_C_STANDARD_LIBRARIES "")
+# XXX - is this needed?
+set(CMAKE_CXX_STANDARD_LIBRARIES "")
+
+# XXX - abstract the hell out of this
+TARGET_LINK_LIBRARIES(${_target} ${HAVE_FWPKCLNT} 
+"C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.14393.0\\km\\x64\\wdmsec.lib" 
+"C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.14393.0\\km\\x64\\ndis.lib" 
+"C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.14393.0\\um\\x64\\uuid.lib" 
+"C:\\Program Files (x86)\\Windows Kits\\10\\lib\\wdf\\kmdf\\x64\\1.15\\WdfLdr.lib" 
+"C:\\Program Files (x86)\\Windows Kits\\10\\lib\\wdf\\kmdf\\x64\\1.15\\WdfDriverEntry.lib"
+"C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.14393.0\\km\\x64\\hal.lib" 
+"C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.14393.0\\km\\x64\\BufferOverflowFastFailK.lib"
+# "C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.14393.0\\km\\x64\\wmilib.lib" 
+# "C:\\Program Files (x86)\\Windows Kits\\10\\lib\\10.0.14393.0\\km\\x64\\ntoskrnl.lib" 
+
+)
+
+SET_TARGET_PROPERTIES(${_target} PROPERTIES SUFFIX ".sys")
+
+# /Gz is x86 specified
+check_type_size(void* SIZEOF_VOID_PTR)
+if("${SIZEOF_VOID_PTR}" STREQUAL "4")
+foreach(item CMAKE_CXX_FLAGS
+    CMAKE_CXX_FLAGS_DEBUG
+    CMAKE_CXX_FLAGS_RELEASE)
+set(${item} "${${item}} /Gz")
+endforeach()
+endif()
+
+SET_TARGET_PROPERTIES (${_target} PROPERTIES COMPILE_FLAGS "/GS- /GR- /D_KERNEL_MODE /DNTSTRSAFE_LIB /GL" )
+
+SET_TARGET_PROPERTIES (${_target} PROPERTIES LINK_FLAGS "/incremental:no /nodefaultlib /version:5.0 /manifest:no /subsystem:native /stack:262144,4096 /driver /entry:DriverEntry /base:0x10000 /integritycheck /ignore:4198,4010,4037,4039,4065,4070,4078,4087,4089,4099,4221,4210,4086 /release /LTCG" )
+endmacro()
+
+# XXX what add_library combo is the best to start with? Leave SHARED out??
+ADD_LIBRARY(${CMAKE_PROJECT_NAME}${BITS} SHARED ${WD_SYS_SOURCES})
+set_type_driver(${CMAKE_PROJECT_NAME}${BITS})
+
+# you're useless...
+message(FATAL_ERROR "WDK_LATEST_NTDDK_FILE: ${WDK_LATEST_NTDDK_FILE}")
+# message(FATAL_ERROR "${WDK_ROOT}/Lib/${WDK_VERSION}/km/${WDK_PLATFORM}/memcmp.lib")

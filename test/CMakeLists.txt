@@ -24,7 +24,7 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -V)
   # XXX- add this globally
     add_definitions(-DWINDIVERTSTATIC -DWINDIVERTSTATIC)
     target_link_libraries(test_all lib${CMAKE_PROJECT_NAME})
-    set_target_properties(test_all PROPERTIES COMPILE_FLAGS -DWINDIVERTSTATIC)
+    set_target_properties(test_all PROPERTIES COMPILE_DEFINITIONS "WINDIVERTEXPORT=")
   else()
       target_link_libraries(test_all ${CMAKE_PROJECT_NAME})
   endif()

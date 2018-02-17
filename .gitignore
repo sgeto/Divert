@@ -3,3 +3,9 @@ install
 *.o
 WinDivertgfhgf
 /WinDivert
+.vs
+*.lib
+*.pdb
+*.obj
+
+sys/wiiuse

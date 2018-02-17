@@ -23,23 +23,9 @@
 #include <windows.h>
 #endif      /* WINDIVERT_KERNEL */
 
-#if !defined(WINDIVERTEXPORT) && !defined(windivert_EXPORTS) && !defined(WINDIVERTSTATIC)
-  /* We're linking dynamically (against WinDivert.dll). */
-  #define WINDIVERTEXPORT     __declspec(dllimport)
-#elif !defined(WINDIVERTEXPORT) && defined(windivert_EXPORTS)
-  /*
-  * We're building WinDivert.dll.
-  * Export variables/function decorated with WINDIVERTEXPORT
-   */
-  #define WINDIVERTEXPORT     __declspec(dllexport)
-#elif defined(WINDIVERTEXPORT) || defined(WINDIVERTSTATIC)
-  /*
-  * Anything else.
-  * Including building and/or linking statically
-  * (against libWinDivert.lib/libWinDivert.a).
-  */
-  #define WINDIVERTEXPORT
-#endif /* !defined(WINDIVERTEXPORT) && !defined(windivert_EXPORTS) */
+#ifndef WINDIVERTEXPORT
+#define WINDIVERTEXPORT     __declspec(dllimport)
+#endif      /* WINDIVERTEXPORT */
 
 #ifdef __MINGW32__
 #define __in

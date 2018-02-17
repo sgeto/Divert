@@ -34,7 +34,7 @@ macro(add_example_executable _executable)
   if(ENABLE_STATIC_LIB)
       # XXX- add this globally and use only one
     # add_definitions(-DWINDIVERTSTATIC -DWINDIVERTSTATIC)
-    set_target_properties(${_executable} PROPERTIES COMPILE_FLAGS -DWINDIVERTSTATIC)
+    set_target_properties(${_executable} PROPERTIES COMPILE_DEFINITIONS "WINDIVERTEXPORT=")
     target_link_libraries(${_executable} lib${CMAKE_PROJECT_NAME} ${WINSOCK2})
   else()
     target_link_libraries(${_executable} ${CMAKE_PROJECT_NAME} ${WINSOCK2})
